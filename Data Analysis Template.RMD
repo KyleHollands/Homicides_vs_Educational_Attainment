@@ -1,0 +1,184 @@
+---
+title: "Homicides vs Educational Attainment"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+library(statsr)
+library(tidyr)
+library(rmarkdown)
+library(readr)
+```
+
+### Load data
+
+```{r load-data}
+# Set the Working Directory
+setwd("Datasets")
+
+# List all CSV Files
+all_datasets <- list.files(pattern = "*.csv")
+
+# Merge CSV Files into one Dataframe
+df <- do.call("rbind", lapply(all_datasets, read_csv))
+
+# Save the merged dataset as one CSV
+write_csv(df, "merged_datasets.csv")
+
+# Import the full dataset as a dataframe
+gun_crime_data <- read_csv("merged_datasets.csv")
+
+# Identify the character columns
+char_cols <- sapply(gun_crime_data, is.character)
+
+# Convert character columns to factors (if necessary) for easier analysis
+gun_crime_data[char_cols] <- lapply(gun_crime_data[char_cols], as.factor)
+```
+
+* * *
+
+## Part 1: Data 
+#### Plan Phase of the PACE Framework
+
+### How are the observations in the sample collected?
+The Kaggle dataset is based on the FiveThirtyEight project, which acquired gun-related death information 
+from the Centers for Disease Control and Prevention’s Multiple Cause of Death database. The original dataset 
+only contained data from 2012 to 2014. This updated dataset includes data for additional years, from 2006 to 2011 
+and from 2015 to 2020.
+
+The observations are likely independent of one another, as they were randomly sampled. However, it is impossible 
+to confirm this with 100% certainty, as there may be some unknown factors that could have influenced the 
+independence of the observations.
+
+As the data collected is based on observations rather than a controlled experiment, it is not possible to infer causation.
+
+* * *
+
+## Part 2: Research question 
+#### Plan Phase of the PACE Framework
+
+### Project Scope
+The goal of this project is to investigate the correlation (if any) between the level of education of a homicide victim 
+and their likelihood of being a victim of homicide. Specifically, we want to determine whether people with lower 
+levels of education are more likely to be victims of homicide than people with higher levels of education.
+
+* * *
+
+## Part 3: Exploratory data analysis 
+#### Analyze Phase of the PACE Framework
+
+### Investigate the Dataset
+Initial investigations of the dataset suggest a correlation between lower educational attainment and a higher 
+rate of homicides. As educational attainment increases, the homicide rate appears to decrease.
+
+There are several factors that could contribute to this being accurate:
+
+- Educational attainment is associated with socioeconomic status. People with lower educational attainment are more likely to live in poverty, 
+which is a risk factor for violence. Poverty can lead to stress, frustration, and a lack of opportunities, which can increase the likelihood 
+of violence.
+
+- Educational attainment is associated with cognitive ability. People with lower educational attainment may have lower cognitive abilities, 
+which can make it more difficult for them to solve problems peacefully. They may also be more impulsive and less able to control their 
+emotions, which can increase the risk of violence.
+
+- Educational attainment is associated with social norms. People with lower educational attainment may be more likely to live in communities 
+where violence is more common. They may also be more likely to be exposed to violent media, which can normalize violence and make it more 
+likely that they will engage in violence themselves.
+
+```{r eda}
+# Initial investigation of key variables
+table(gun_crime_data$race,
+      gun_crime_data$education,
+      gun_crime_data$intent)
+
+ggplot(gun_crime_data, aes(x = intent, fill = race)) +
+  geom_bar(stat = "count") +
+  facet_wrap(~education) + 
+  labs(title = "Gun Death Intent vs Educational Attainment",
+       x = "Intent",
+       y = "Count") +
+  scale_fill_brewer(palette = "Set1") +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1),
+    panel.spacing = unit(1, "cm")
+  )
+```
+
+### Data Manipulation and Cleaning
+```{r format_clean}
+# Keep columns for analysis
+gun_crime_data_trimmed <- gun_crime_data %>%
+  select(c("year","intent","race","education"))
+
+# Remove all rows with irrelevant data for this analysis
+gun_crime_data_trimmed <- gun_crime_data_trimmed[!grepl("Suicide", gun_crime_data_trimmed$intent), ]
+gun_crime_data_trimmed <- gun_crime_data_trimmed[!grepl("Accidental", gun_crime_data_trimmed$intent), ]
+gun_crime_data_trimmed <- gun_crime_data_trimmed[!grepl("Undetermined", gun_crime_data_trimmed$intent), ]
+
+# Check for Missing Values
+sum(is.na(gun_crime_data_trimmed))
+
+# Replace missing values with the most frequent value
+most_frequent_value <- levels(gun_crime_data_trimmed$intent)[which.max(table(gun_crime_data_trimmed$intent))]
+gun_crime_data_trimmed <- gun_crime_data_trimmed %>%
+  mutate(intent = replace_na(intent, most_frequent_value))
+
+most_frequent_value <- levels(gun_crime_data_trimmed$race)[which.max(table(gun_crime_data_trimmed$race))]
+gun_crime_data_trimmed <- gun_crime_data_trimmed %>%
+  mutate(race = replace_na(race, most_frequent_value))
+
+most_frequent_value <- levels(gun_crime_data_trimmed$education)[which.max(table(gun_crime_data_trimmed$education))]
+gun_crime_data_trimmed <- gun_crime_data_trimmed %>%
+  mutate(education = replace_na(education, most_frequent_value))
+
+table(gun_crime_data_trimmed$race,
+      gun_crime_data_trimmed$education,
+      gun_crime_data_trimmed$intent)
+
+ggplot(gun_crime_data_trimmed, aes(x = intent, fill = race)) +
+  geom_bar(stat = "count") +
+  facet_wrap(~education) + 
+  labs(title = "# of Homicides vs Educational Attainment",
+       x = "",
+       y = "Count") +
+  scale_fill_brewer(palette = "Set1") +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    panel.spacing = unit(1, "cm"),
+  )
+```
+
+### Conditions
+```{r check_conditions}
+
+```
+
+* * *
+
+## Part 4: Modeling/Inference 
+#### Construct Phase of the PACE Framework
+```{r modeling_inference}
+
+```
+
+
+* * *
+
+## Part 5: Prediction/Conclusion
+```{r predictions_conclusion}
+
+```
+
+### What Story does the Data Tell?
+#### Execute Phase of the PACE Framework
