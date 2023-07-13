@@ -18,6 +18,7 @@ library(statsr)
 library(tidyr)
 library(rmarkdown)
 library(readr)
+library(viridis)
 ```
 
 ### Load data
@@ -42,7 +43,7 @@ gun_crime_data <- read_csv("merged_datasets.csv")
 char_cols <- sapply(gun_crime_data, is.character)
 
 # Convert character columns to factors (if necessary) for easier analysis
-gun_crime_data[char_cols] <- lapply(gun_crime_data[char_cols], as.factor)
+#gun_crime_data[char_cols] <- lapply(gun_crime_data[char_cols], as.factor)
 ```
 
 * * *
@@ -121,31 +122,50 @@ gun_crime_data_trimmed <- gun_crime_data %>%
   select(c("year","intent","race","education"))
 
 # Remove all rows with irrelevant data for this analysis
+rows_to_remove <- grepl("suicide|accidental|undetermined", gun_crime_data_trimmed$intent, ignore.case = TRUE)
+gun_crime_data_trimmed <- gun_crime_data_trimmed[!rows_to_remove, ]
+
+# Remove all rows with irrelevant data for this analysis
+if (FALSE) {
 gun_crime_data_trimmed <- gun_crime_data_trimmed[!grepl("Suicide", gun_crime_data_trimmed$intent), ]
 gun_crime_data_trimmed <- gun_crime_data_trimmed[!grepl("Accidental", gun_crime_data_trimmed$intent), ]
 gun_crime_data_trimmed <- gun_crime_data_trimmed[!grepl("Undetermined", gun_crime_data_trimmed$intent), ]
+}
 
 # Check for Missing Values
-sum(is.na(gun_crime_data_trimmed))
+sum(is.na(gun_crime_data_trimmed$education))
+sum(is.na(gun_crime_data_trimmed$intent))
+
+# Omit rows with missing values
+if (FALSE) {
+gun_crime_data_trimmed <- na.omit(df)
+}
+
+# Impute the missing rows with the mode.
+mode <- names(which.max(table(gun_crime_data_trimmed$education)))
+gun_crime_data_trimmed$education[is.na(gun_crime_data_trimmed$education)] <- mode
+mode <- names(which.max(table(gun_crime_data_trimmed$intent)))
+gun_crime_data_trimmed$intent[is.na(gun_crime_data_trimmed$intent)] <- mode
 
 # Replace missing values with the most frequent value
+if (FALSE) {
 most_frequent_value <- levels(gun_crime_data_trimmed$intent)[which.max(table(gun_crime_data_trimmed$intent))]
 gun_crime_data_trimmed <- gun_crime_data_trimmed %>%
-  mutate(intent = replace_na(intent, most_frequent_value))
+mutate(intent = replace_na(intent, most_frequent_value))
 
 most_frequent_value <- levels(gun_crime_data_trimmed$race)[which.max(table(gun_crime_data_trimmed$race))]
 gun_crime_data_trimmed <- gun_crime_data_trimmed %>%
-  mutate(race = replace_na(race, most_frequent_value))
+mutate(race = replace_na(race, most_frequent_value))
 
 most_frequent_value <- levels(gun_crime_data_trimmed$education)[which.max(table(gun_crime_data_trimmed$education))]
 gun_crime_data_trimmed <- gun_crime_data_trimmed %>%
-  mutate(education = replace_na(education, most_frequent_value))
+mutate(education = replace_na(education, most_frequent_value))
+}
 
-table(gun_crime_data_trimmed$race,
-      gun_crime_data_trimmed$education,
+table(gun_crime_data_trimmed$education,
       gun_crime_data_trimmed$intent)
 
-ggplot(gun_crime_data_trimmed, aes(x = intent, fill = race)) +
+ggplot(gun_crime_data_trimmed, aes(x = intent)) +
   geom_bar(stat = "count") +
   facet_wrap(~education) + 
   labs(title = "# of Homicides vs Educational Attainment",
@@ -157,10 +177,29 @@ ggplot(gun_crime_data_trimmed, aes(x = intent, fill = race)) +
     axis.ticks.x = element_blank(),
     panel.spacing = unit(1, "cm"),
   )
-ggsave("Homicides_vs_Educational Attaintment.png", width=6, height=4)
+ggsave("Homicides_vs_Educational Attaintment.png", width=6, height=8)
 ```
 
 ### Conditions
+#### Test Type
+To analyze the data and determine if there is a correlation between the rate of homicide victimization 
+and the level of educational attainment, a CHI-Square Independence Test will be used.
+
+Conditions for the chi-square test: 
+1. Independence: Sampled observations must be independent. 
+‣ Random sample/assignment
+Condition met; original location of data mentioned it was acquired through random sampling. 
+
+‣ If sampling without replacement, n < 10% of population
+Condition met.
+
+‣ Each case only contributes to one cell in the table
+It is possible that individuals may have been a part of more than one group, such as attaining more than
+one educational group, such as HS/GED and College.
+
+2. Sample size: Each particular scenario (i.e. cell) must have at least 5 expected cases
+Condition met.
+
 ```{r check_conditions}
 
 ```
@@ -169,17 +208,53 @@ ggsave("Homicides_vs_Educational Attaintment.png", width=6, height=4)
 
 ## Part 4: Modeling/Inference 
 #### Construct Phase of the PACE Framework
-```{r modeling_inference}
+H0 (nothing going on): Homicide victimization and educational attainment are independent. 
+Homicide rates do not vary by educational status.
 
+HA (something going on): Homicide victimization and educational attainment are dependent. 
+Homicide rates do vary by educational status.
+```{r modeling_inference}
+contingency_table <- table(gun_crime_data_trimmed$intent, gun_crime_data_trimmed$education)
+print(contingency_table)
+chi_square_result <- chisq.test(contingency_table)
+
+# Extract the test statistics
+chi_square <- chi_square_result$statistic
+df <- chi_square_result$parameter
+
+# Set the desired confidence level
+confidence_level <- 0.95
+
+# Calculate the critical value
+critical_value <- qchisq(1 - (1 - confidence_level) / 2, df)
+
+# Calculate the margin of error
+margin_of_error <- sqrt(chi_square / sum(chi_square_result$observed)) * critical_value
+
+# Calculate the lower and upper bounds of the confidence interval
+lower_bound <- chi_square / (1 - margin_of_error)
+upper_bound <- chi_square / (1 + margin_of_error)
 ```
 
 
 * * *
 
 ## Part 5: Prediction/Conclusion
+Based on the p-value being much lower than the significance value of 0.05, it can be concluded that 
+there is a correlation between the rate of homicide victimization and educational attainment. 
+However, it is important to note that since this is an observational study and not an experiment, 
+causation cannot be inferred.
 ```{r predictions_conclusion}
+# Print the confidence interval
+cat("Confidence Interval:", lower_bound, "-", upper_bound, "\n")
 
+# Print the Chi Square Test Result
+print(chi_square_result)
 ```
 
 ### What Story does the Data Tell?
 #### Execute Phase of the PACE Framework
+Based on the data analysis, it appears that there is a connection between the level of education 
+attained and the probability of becoming a victim of homicide. While there are several other factors 
+that contribute to this conclusion, for the purposes of this analysis, this information should suffice.
+
