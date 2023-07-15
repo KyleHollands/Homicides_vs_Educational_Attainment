@@ -23,7 +23,7 @@ library(viridis)
 
 ### Load data
 
-```{r load-data}
+```{r load-data, echo = FALSE, message = FALSE}
 # Set the Working Directory
 setwd("Datasets")
 
@@ -39,11 +39,11 @@ write_csv(df, "merged_datasets.csv")
 # Import the full dataset as a dataframe
 gun_crime_data <- read_csv("merged_datasets.csv")
 
-# Identify the character columns
+## Identify the character columns and convert them to factors if applicable.
+if (FALSE) {
 char_cols <- sapply(gun_crime_data, is.character)
-
-# Convert character columns to factors (if necessary) for easier analysis
-#gun_crime_data[char_cols] <- lapply(gun_crime_data[char_cols], as.factor)
+gun_crime_data[char_cols] <- lapply(gun_crime_data[char_cols], as.factor)
+}
 ```
 
 * * *
@@ -102,6 +102,7 @@ table(gun_crime_data$race,
       gun_crime_data$education,
       gun_crime_data$intent)
 
+# Plot visualizing potentially relevant variables
 ggplot(gun_crime_data, aes(x = intent, fill = race)) +
   geom_bar(stat = "count") +
   facet_wrap(~education) + 
@@ -119,7 +120,7 @@ ggplot(gun_crime_data, aes(x = intent, fill = race)) +
 ```{r format_clean}
 # Keep columns for analysis
 gun_crime_data_trimmed <- gun_crime_data %>%
-  select(c("year","intent","race","education"))
+  select(c("intent","education"))
 
 # Remove all rows with irrelevant data for this analysis
 rows_to_remove <- grepl("suicide|accidental|undetermined", gun_crime_data_trimmed$intent, ignore.case = TRUE)
@@ -168,7 +169,7 @@ table(gun_crime_data_trimmed$education,
 ggplot(gun_crime_data_trimmed, aes(x = intent)) +
   geom_bar(stat = "count") +
   facet_wrap(~education) + 
-  labs(title = "# of Homicides vs Educational Attainment",
+  labs(title = "Homicide Victimization vs Educational Attainment",
        x = "",
        y = "Count") +
   scale_fill_brewer(palette = "Set1") +
@@ -185,20 +186,22 @@ ggsave("Homicides_vs_Educational Attaintment.png", width=6, height=8)
 To analyze the data and determine if there is a correlation between the rate of homicide victimization 
 and the level of educational attainment, a CHI-Square Independence Test will be used.
 
-Conditions for the chi-square test: 
+Conditions for the chi-square test:
+
 1. Independence: Sampled observations must be independent. 
-‣ Random sample/assignment
-Condition met; original location of data mentioned it was acquired through random sampling. 
+- Random sample/assignment
+**Condition met;** *original location of data mentioned it was acquired through random sampling.*
 
-‣ If sampling without replacement, n < 10% of population
-Condition met.
+- If sampling without replacement, n < 10% of population
+**Condition met.**
 
-‣ Each case only contributes to one cell in the table
-It is possible that individuals may have been a part of more than one group, such as attaining more than
-one educational group, such as HS/GED and College.
+- Each case only contributes to one cell in the table
+*It is possible that individuals may have been a part of more than one group, such as attaining more than*
+*one educational group, such as HS/GED and College. This condition can be difficult to achieve during an 
+*observational study.*
 
 2. Sample size: Each particular scenario (i.e. cell) must have at least 5 expected cases
-Condition met.
+**Condition met.**
 
 ```{r check_conditions}
 
@@ -214,8 +217,10 @@ Homicide rates do not vary by educational status.
 HA (something going on): Homicide victimization and educational attainment are dependent. 
 Homicide rates do vary by educational status.
 ```{r modeling_inference}
+# Create a contingency table of the data
 contingency_table <- table(gun_crime_data_trimmed$intent, gun_crime_data_trimmed$education)
-print(contingency_table)
+
+# Run a Chi-Square Independence Test on the table.
 chi_square_result <- chisq.test(contingency_table)
 
 # Extract the test statistics
@@ -257,4 +262,3 @@ print(chi_square_result)
 Based on the data analysis, it appears that there is a connection between the level of education 
 attained and the probability of becoming a victim of homicide. While there are several other factors 
 that contribute to this conclusion, for the purposes of this analysis, this information should suffice.
-
