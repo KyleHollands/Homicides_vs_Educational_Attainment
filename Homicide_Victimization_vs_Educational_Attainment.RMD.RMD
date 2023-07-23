@@ -1,5 +1,5 @@
 ---
-title: "Homicides vs Educational Attainment"
+title: "Homicide Victimization vs Educational Attainment"
 output: 
   html_document: 
     fig_height: 4
@@ -10,19 +10,16 @@ output:
 ## Setup
 
 ### Load packages
-
-```{r load-packages, message = FALSE}
+```{r load-packages, echo = FALSE, message = FALSE}
 library(ggplot2)
 library(dplyr)
 library(statsr)
 library(tidyr)
 library(rmarkdown)
 library(readr)
-library(viridis)
 ```
 
 ### Load data
-
 ```{r load-data, echo = FALSE, message = FALSE}
 # Set the Working Directory
 setwd("Datasets")
@@ -39,8 +36,8 @@ write_csv(df, "merged_datasets.csv")
 # Import the full dataset as a dataframe
 gun_crime_data <- read_csv("merged_datasets.csv")
 
-## Identify the character columns and convert them to factors if applicable.
-if (FALSE) {
+# Identify the character columns and convert them to factors if applicable.
+if (FALSE) { # Skip code that isn't used.
 char_cols <- sapply(gun_crime_data, is.character)
 gun_crime_data[char_cols] <- lapply(gun_crime_data[char_cols], as.factor)
 }
@@ -97,7 +94,7 @@ where violence is more common. They may also be more likely to be exposed to vio
 likely that they will engage in violence themselves.
 
 ```{r eda}
-# Initial investigation of key variables
+# Initial investigation of potentially relevant variables
 table(gun_crime_data$race,
       gun_crime_data$education,
       gun_crime_data$intent)
@@ -106,7 +103,7 @@ table(gun_crime_data$race,
 ggplot(gun_crime_data, aes(x = intent, fill = race)) +
   geom_bar(stat = "count") +
   facet_wrap(~education) + 
-  labs(title = "Gun Death Intent vs Educational Attainment",
+  labs(title = "Gun Death Cause vs Level of Educational Attainment",
        x = "Intent",
        y = "Count") +
   scale_fill_brewer(palette = "Set1") +
@@ -118,7 +115,7 @@ ggplot(gun_crime_data, aes(x = intent, fill = race)) +
 
 ### Data Manipulation and Cleaning
 ```{r format_clean}
-# Keep columns for analysis
+# Keep columns for analysis that were deemed relevant for the analysis
 gun_crime_data_trimmed <- gun_crime_data %>%
   select(c("intent","education"))
 
@@ -127,7 +124,7 @@ rows_to_remove <- grepl("suicide|accidental|undetermined", gun_crime_data_trimme
 gun_crime_data_trimmed <- gun_crime_data_trimmed[!rows_to_remove, ]
 
 # Remove all rows with irrelevant data for this analysis
-if (FALSE) {
+if (FALSE) { # Skip code that isn't used.
 gun_crime_data_trimmed <- gun_crime_data_trimmed[!grepl("Suicide", gun_crime_data_trimmed$intent), ]
 gun_crime_data_trimmed <- gun_crime_data_trimmed[!grepl("Accidental", gun_crime_data_trimmed$intent), ]
 gun_crime_data_trimmed <- gun_crime_data_trimmed[!grepl("Undetermined", gun_crime_data_trimmed$intent), ]
@@ -138,18 +135,19 @@ sum(is.na(gun_crime_data_trimmed$education))
 sum(is.na(gun_crime_data_trimmed$intent))
 
 # Omit rows with missing values
-if (FALSE) {
+if (FALSE) { # Skip code that isn't used.
 gun_crime_data_trimmed <- na.omit(df)
 }
 
-# Impute the missing rows with the mode.
+# Handle missing values by imputing the missing rows with the mode.
 mode <- names(which.max(table(gun_crime_data_trimmed$education)))
 gun_crime_data_trimmed$education[is.na(gun_crime_data_trimmed$education)] <- mode
+
 mode <- names(which.max(table(gun_crime_data_trimmed$intent)))
 gun_crime_data_trimmed$intent[is.na(gun_crime_data_trimmed$intent)] <- mode
 
 # Replace missing values with the most frequent value
-if (FALSE) {
+if (FALSE) { # Skip code that isn't used.
 most_frequent_value <- levels(gun_crime_data_trimmed$intent)[which.max(table(gun_crime_data_trimmed$intent))]
 gun_crime_data_trimmed <- gun_crime_data_trimmed %>%
 mutate(intent = replace_na(intent, most_frequent_value))
@@ -178,7 +176,7 @@ ggplot(gun_crime_data_trimmed, aes(x = intent)) +
     axis.ticks.x = element_blank(),
     panel.spacing = unit(1, "cm"),
   )
-ggsave("Homicides_vs_Educational Attaintment.png", width=6, height=8)
+ggsave("Homicide_Victimization_vs_Educational Attaintment.png", width=6, height=8)
 ```
 
 ### Conditions
@@ -193,18 +191,17 @@ Conditions for the chi-square test:
 **Condition met;** *original location of data mentioned it was acquired through random sampling.*
 
 - If sampling without replacement, n < 10% of population
-**Condition met.**
+**Condition met**
 
 - Each case only contributes to one cell in the table
-*It is possible that individuals may have been a part of more than one group, such as attaining more than*
+**Condition possibly met** *It is possible that individuals may have been a part of more than one group, such as attaining more than*
 *one educational group, such as HS/GED and College. This condition can be difficult to achieve during an 
 *observational study.*
 
 2. Sample size: Each particular scenario (i.e. cell) must have at least 5 expected cases
-**Condition met.**
+**Condition met**
 
 ```{r check_conditions}
-
 ```
 
 * * *
