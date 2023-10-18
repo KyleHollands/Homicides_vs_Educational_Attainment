@@ -111,6 +111,7 @@ ggplot(gun_crime_data, aes(x = intent, fill = race)) +
     axis.text.x = element_text(angle = 90, hjust = 1),
     panel.spacing = unit(1, "cm")
   )
+ggsave("Homicide_Victimization_vs_Educational Attaintment.png", width=6, height=8)
 ```
 
 ### Data Manipulation and Cleaning
@@ -188,7 +189,7 @@ Conditions for the chi-square test:
 
 1. Independence: Sampled observations must be independent. 
 - Random sample/assignment
-**Condition met;** *original location of data mentioned it was acquired through random sampling.*
+**Condition met** *original location of data mentioned it was acquired through random sampling.*
 
 - If sampling without replacement, n < 10% of population
 **Condition met**
@@ -242,7 +243,7 @@ upper_bound <- chi_square / (1 + margin_of_error)
 * * *
 
 ## Part 5: Prediction/Conclusion
-Based on the p-value being much lower than the significance value of 0.05, it can be concluded that 
+Based on the p-value being much lower than the significance level of 0.05, it can be concluded that 
 there is a correlation between the rate of homicide victimization and educational attainment. 
 However, it is important to note that since this is an observational study and not an experiment, 
 causation cannot be inferred.
